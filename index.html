@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Tracker</title>
+<style>
+  :root{
+    --ink:#171717; --ink-soft:#6b6b6b; --line:#e5e5e5; --line-soft:#f0f0f0;
+    --bg-soft:#fafafa; --white:#ffffff;
+    --pending-fg:#B58A00; --pending-bg:#FFF8E6;
+    --progress-fg:#1D5FC7; --progress-bg:#EDF3FF;
+    --done-fg:#1E8E5A; --done-bg:#EAF7EF;
+    --cancel-fg:#B23B3B; --cancel-bg:#FCEEEE;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#fff;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1400px;margin:0 auto;padding:40px 32px;}
+  h1{font-size:22px;font-weight:600;letter-spacing:-0.01em;margin:0;}
+  .sub{margin:4px 0 0;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;}
+  .header-row{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+  .btn{border:none;cursor:pointer;font-family:inherit;font-weight:500;font-size:13px;border-radius:999px;padding:9px 16px;display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s;}
+  .btn-dark{background:var(--ink);color:#fff;}
+  .btn-dark:hover{background:#3a3a3a;}
+  .btn-outline{background:transparent;border:1px solid var(--line);color:#555;}
+  .btn-outline:hover{border-color:#c9c9c9;}
+  .btn-red{background:#e5484d;color:#fff;}
+  .btn-red:hover{background:#d33338;}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .tab{padding:10px 16px;font-size:13px;font-weight:500;color:#8a8a8a;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none;}
+  .tab.active{color:var(--ink);border-bottom-color:var(--ink);}
+  .tab .lock-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle;background:#d8d8d8;}
+  .tab.unlocked .lock-dot{background:#28A968;}
+  .panel{border:1px solid var(--line);background:var(--bg-soft);border-radius:12px;padding:16px;margin-bottom:20px;}
+  .panel p.title{font-size:13px;font-weight:600;margin:0 0 8px;}
+  .panel p.desc{font-size:12px;color:var(--ink-soft);margin:0 0 12px;line-height:1.5;}
+  .panel-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  input[type=password],input[type=text].code{width:160px;border:1px solid #d6d6d6;border-radius:6px;padding:7px 10px;font-size:13px;outline:none;font-family:inherit;}
+  input[type=password]:focus{border-color:#9a9a9a;}
+  .err{color:#e5484d;font-size:12px;margin-top:8px;}
+  .banner{background:var(--bg-soft);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--ink-soft);margin-bottom:20px;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:500;color:#8a8a8a;cursor:pointer;background:#fff;}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  table{width:100%;border-collapse:collapse;min-width:1180px;}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+  thead tr{background:rgba(250,250,250,.7);border-bottom:1px solid var(--line);}
+  th{padding:10px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:#aaa;text-align:left;}
+  tbody tr{border-bottom:1px solid var(--line-soft);}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:rgba(250,250,250,.6);}
+  td{padding:10px 12px;vertical-align:top;}
+  td input[type=text],td input[type=date],td textarea{
+    width:100%;border:none;background:transparent;font-size:13px;color:#262626;outline:none;font-family:inherit;
+    resize:none;line-height:1.4;
+  }
+  td input::placeholder,td textarea::placeholder{color:#bbb;}
+  td input:disabled,td textarea:disabled{color:#8a8a8a;cursor:default;}
+  .job-title{font-weight:500;color:#171717;}
+  select.status{appearance:none;border:none;border-radius:999px;padding:5px 22px 5px 10px;font-size:12px;font-weight:500;cursor:pointer;
+    background-repeat:no-repeat;background-position:right 8px center;background-size:9px 9px;}
+  select.status:disabled{cursor:default;opacity:.85;}
+  .photos{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .thumb{position:relative;width:36px;height:36px;border-radius:6px;overflow:hidden;border:1px solid var(--line);flex:none;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb .rm{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);border:none;cursor:pointer;color:#fff;}
+  .thumb:hover .rm{display:flex;}
+  .upload-btn{width:36px;height:36px;border-radius:6px;border:1px dashed #ccc;background:#fff;color:#aaa;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;}
+  .upload-btn:hover{border-color:#999;color:#666;}
+  .del-btn{background:none;border:none;color:#d4d4d4;cursor:pointer;padding:4px;}
+  .del-btn:hover{color:#e5484d;}
+  .empty-row td{text-align:center;color:#bbb;font-size:13px;padding:44px 12px;}
+  .footer-note{display:flex;justify-content:space-between;font-size:12px;color:#aaa;margin-top:14px;flex-wrap:wrap;gap:6px;}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .modal{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;width:100%;max-width:340px;box-shadow:0 12px 40px rgba(0,0,0,.15);}
+  .modal p.title{font-size:14px;font-weight:600;margin:0 0 6px;}
+  .modal p.desc{font-size:12px;color:var(--ink-soft);margin:0 0 12px;line-height:1.5;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+  .spinner{width:18px;height:18px;border:2px solid #ddd;border-top-color:#888;border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-row{display:flex;justify-content:center;padding:90px 0;}
+  svg{display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header-row">
+    <div>
+      <h1>Job Tracker</h1>
+      <p class="sub" id="subline">Loading…</p>
+    </div>
+    <div id="headerActions"></div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="unlockPanel"></div>
+  <div id="viewBanner"></div>
+  <div class="chips" id="chips"></div>
+
+  <div id="tableArea"></div>
+
+  <div class="footer-note">
+    <span>Each tab has its own passcode. Data is saved to the server and shared with everyone who opens this page.</span>
+    <span id="saveErr" style="color:#e5484d;display:none;">Couldn't save last change — check connection.</span>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const PAGES = [
+    { key: "graphic",  label: "Graphic",       code: "1111" },
+    { key: "marcom",   label: "MarCom Mgr.",   code: "2222" },
+    { key: "digital",  label: "Digital",       code: "3333" },
+    { key: "director", label: "Director",      code: "4444" },
+  ];
+
+  const STATUS = [
+    { value: "pending",     label: "Pending",     fg:"var(--pending-fg)",  bg:"var(--pending-bg)"  },
+    { value: "in_progress", label: "On Progress", fg:"var(--progress-fg)", bg:"var(--progress-bg)" },
+    { value: "completed",   label: "Completed",   fg:"var(--done-fg)",     bg:"var(--done-bg)"     },
+    { value: "canceled",    label: "Canceled",    fg:"var(--cancel-fg)",   bg:"var(--cancel-bg)"   },
+  ];
+  const statusMeta = v => STATUS.find(s => s.value === v) || STATUS[0];
+
+  let currentPage = PAGES[0].key;
+  const jobsByPage = {};      // key -> array
+  const loadedPage = {};      // key -> bool
+  const filterByPage = {};    // key -> status filter
+  PAGES.forEach(p => { filterByPage[p.key] = "all"; });
+
+  let confirmDeleteJobId = null;
+  let saveTimer = null;
+
+  function pageDef(key){ return PAGES.find(p => p.key === key); }
+  function isUnlocked(key){ return localStorage.getItem("unlocked_" + key) === "true"; }
+  function setUnlocked(key, val){
+    if (val) localStorage.setItem("unlocked_" + key, "true");
+    else localStorage.removeItem("unlocked_" + key);
+  }
+
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  function emptyJob(){
+    return {
+      id: uid(), dateRequested: new Date().toISOString().slice(0,10),
+      jobTitle: "", description: "", deadline: "", requestedBy: "",
+      status: "pending", notes: "", photos: []
+    };
+  }
+
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
+      { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+    ));
+  }
+
+  // ---------- API ----------
+  async function apiGet(page){
+    const res = await fetch("/api/jobs?page=" + encodeURIComponent(page));
+    if (!res.ok) throw new Error("load failed");
+    return res.json();
+  }
+  async function apiSave(page, jobs){
+    const res = await fetch("/api/jobs?page=" + encodeURIComponent(page), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(jobs)
+    });
+    if (!res.ok) throw new Error("save failed");
+  }
+
+  function scheduleSave(page){
+    document.getElementById("saveErr").style.display = "none";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try { await apiSave(page, jobsByPage[page]); }
+      catch (e) { document.getElementById("saveErr").style.display = "inline"; }
+    }, 500);
+  }
+  async function saveNow(page){
+    try { await apiSave(page, jobsByPage[page]); document.getElementById("saveErr").style.display = "none"; }
+    catch (e) { document.getElementById("saveErr").style.display = "inline"; }
+  }
+
+  async function ensurePageLoaded(page){
+    if (loadedPage[page]) return;
+    renderAll(); // show spinner
+    try {
+      jobsByPage[page] = await apiGet(page);
+    } catch (e) {
+      jobsByPage[page] = [];
+    }
+    loadedPage[page] = true;
+    renderAll();
+  }
+
+  // ---------- Icons ----------
+  const icon = {
+    plus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    lock: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+    unlock: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.4-2"/></svg>',
+    trash: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 6"/></svg>',
+    upload: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>',
+    x: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  };
+
+  // ---------- Rendering ----------
+  function renderAll(){
+    renderSubline();
+    renderTabs();
+    renderHeaderActions();
+    renderUnlockPanel();
+    renderBanner();
+    renderChips();
+    renderTable();
+  }
+
+  function renderSubline(){
+    const loaded = loadedPage[currentPage];
+    const count = loaded ? jobsByPage[currentPage].length : 0;
+    document.getElementById("subline").textContent = loaded
+      ? count + (count === 1 ? " job" : " jobs") + " · sorted by most recent request"
+      : "Loading…";
+  }
+
+  function renderTabs(){
+    const el = document.getElementById("tabs");
+    el.innerHTML = PAGES.map(p => {
+      const active = p.key === currentPage ? " active" : "";
+      const unlocked = isUnlocked(p.key) ? " unlocked" : "";
+      return '<div class="tab' + active + unlocked + '" data-page="' + p.key + '">' +
+        '<span class="lock-dot"></span>' + esc(p.label) + '</div>';
+    }).join("");
+    el.querySelectorAll(".tab").forEach(t => {
+      t.addEventListener("click", () => {
+        currentPage = t.getAttribute("data-page");
+        ensurePageLoaded(currentPage);
+        renderAll();
+      });
+    });
+  }
+
+  function renderHeaderActions(){
+    const el = document.getElementById("headerActions");
+    if (!loadedPage[currentPage]) { el.innerHTML = ""; return; }
+    if (isUnlocked(currentPage)) {
+      el.innerHTML =
+        '<button class="btn btn-dark" id="addJobBtn">' + icon.plus + 'New job</button> ' +
+        '<button class="btn btn-outline" id="lockBtn">' + icon.lock + 'Lock editing</button>';
+      document.getElementById("addJobBtn").onclick = () => {
+        jobsByPage[currentPage].unshift(emptyJob());
+        scheduleSave(currentPage);
+        renderAll();
+      };
+      document.getElementById("lockBtn").onclick = () => {
+        setUnlocked(currentPage, false);
+        renderAll();
+      };
+    } else {
+      el.innerHTML = '<button class="btn btn-outline" id="unlockToggleBtn">' + icon.unlock + 'Unlock editing</button>';
+      document.getElementById("unlockToggleBtn").onclick = () => {
+        const panel = document.getElementById("unlockPanel");
+        panel.dataset.open = panel.dataset.open === "1" ? "0" : "1";
+        renderUnlockPanel();
+      };
+    }
+  }
+
+  function renderUnlockPanel(){
+    const el = document.getElementById("unlockPanel");
+    const open = el.dataset.open === "1";
+    if (isUnlocked(currentPage) || !open) { el.innerHTML = ""; return; }
+    const label = pageDef(currentPage).label;
+    el.innerHTML =
+      '<div class="panel">' +
+        '<p class="title">Enter the ' + esc(label) + ' passcode</p>' +
+        '<p class="desc">This tab is locked. Enter its 4-digit passcode to edit jobs on ' + esc(label) + '.</p>' +
+        '<div class="panel-row">' +
+          '<input type="password" id="unlockInput" placeholder="Passcode" maxlength="8" />' +
+          '<button class="btn btn-dark" id="unlockSubmit">Unlock</button>' +
+        '</div>' +
+        '<p class="err" id="unlockErr" style="display:none;"></p>' +
+      '</div>';
+    const input = document.getElementById("unlockInput");
+    const err = document.getElementById("unlockErr");
+    const submit = () => {
+      if (input.value.trim() === pageDef(currentPage).code) {
+        setUnlocked(currentPage, true);
+        el.dataset.open = "0";
+        renderAll();
+      } else {
+        err.textContent = "That passcode isn't right.";
+        err.style.display = "block";
+      }
+    };
+    document.getElementById("unlockSubmit").onclick = submit;
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+    input.focus();
+  }
+
+  function renderBanner(){
+    const el = document.getElementById("viewBanner");
+    if (!loadedPage[currentPage] || isUnlocked(currentPage)) { el.innerHTML = ""; return; }
+    const panelOpen = document.getElementById("unlockPanel").dataset.open === "1";
+    if (panelOpen) { el.innerHTML = ""; return; }
+    el.innerHTML = '<div class="banner">You\'re viewing ' + esc(pageDef(currentPage).label) +
+      ' in read-only mode. Enter its passcode to add or change jobs.</div>';
+  }
+
+  function renderChips(){
+    const el = document.getElementById("chips");
+    if (!loadedPage[currentPage]) { el.innerHTML = ""; return; }
+    const jobs = jobsByPage[currentPage];
+    const counts = {};
+    STATUS.forEach(s => counts[s.value] = jobs.filter(j => j.status === s.value).length);
+    const f = filterByPage[currentPage];
+    let html = '<div class="chip' + (f === "all" ? " active" : "") + '" data-f="all">All (' + jobs.length + ')</div>';
+    STATUS.forEach(s => {
+      const active = f === s.value;
+      const style = active ? ('background:' + s.bg + ';border-color:' + s.bg + ';color:' + s.fg + ';') : "";
+      html += '<div class="chip' + (active ? " active" : "") + '" data-f="' + s.value + '" style="' + style + '">' +
+        esc(s.label) + ' (' + counts[s.value] + ')</div>';
+    });
+    el.innerHTML = html;
+    el.querySelectorAll(".chip").forEach(c => {
+      c.addEventListener("click", () => {
+        filterByPage[currentPage] = c.getAttribute("data-f");
+        renderAll();
+      });
+    });
+  }
+
+  function renderTable(){
+    const el = document.getElementById("tableArea");
+    if (!loadedPage[currentPage]) {
+      el.innerHTML = '<div class="loading-row"><div class="spinner"></div></div>';
+      return;
+    }
+    const unlocked = isUnlocked(currentPage);
+    const jobs = jobsByPage[currentPage];
+    const f = filterByPage[currentPage];
+    const sorted = jobs.slice().sort((a,b) => {
+      if (!a.dateRequested && !b.dateRequested) return 0;
+      if (!a.dateRequested) return 1;
+      if (!b.dateRequested) return -1;
+      return b.dateRequested.localeCompare(a.dateRequested);
+    });
+    const visible = f === "all" ? sorted : sorted.filter(j => j.status === f);
+
+    let rows = "";
+    if (visible.length === 0) {
+      rows = '<tr class="empty-row"><td colspan="9">' +
+        (unlocked ? "No jobs here yet. Add one to get started." : "No jobs to show yet.") + '</td></tr>';
+    } else {
+      rows = visible.map(job => rowHtml(job, unlocked)).join("");
+    }
+
+    el.innerHTML =
+      '<div class="tablewrap"><table><thead><tr>' +
+        ["Date requested","Job title","Description","Deadline","Requested by","Status","Notes","Photos",""]
+          .map(h => '<th>' + h + '</th>').join("") +
+      '</tr></thead><tbody id="jobsBody">' + rows + '</tbody></table></div>';
+
+    wireTableEvents();
+  }
+
+  function rowHtml(job, unlocked){
+    const meta = statusMeta(job.status);
+    const dis = unlocked ? "" : "disabled";
+    const arrow = "data:image/svg+xml;utf8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="' + meta.fg + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    );
+    const selectBg = unlocked ? ('background-image:url(\'' + arrow + '\');') : "";
+    let photosHtml = job.photos.map((p, i) =>
+      '<div class="thumb"><img src="' + p + '" alt="attachment" />' +
+      (unlocked ? '<button class="rm" data-job="' + job.id + '" data-idx="' + i + '" data-act="rmphoto">' + icon.x + '</button>' : '') +
+      '</div>'
+    ).join("");
+    if (unlocked) {
+      photosHtml += '<label class="upload-btn" title="Upload photo">' + icon.upload +
+        '<input type="file" accept="image/*" multiple style="display:none" data-job="' + job.id + '" data-act="upload" /></label>';
+    } else if (job.photos.length === 0) {
+      photosHtml = '<span style="font-size:12px;color:#ccc;">—</span>';
+    }
+
+    return '<tr data-job="' + job.id + '">' +
+      '<td><input type="date" value="' + esc(job.dateRequested) + '" data-job="' + job.id + '" data-field="dateRequested" ' + dis + ' /></td>' +
+      '<td><input type="text" class="job-title" value="' + esc(job.jobTitle) + '" placeholder="' + (unlocked ? "Untitled job" : "") + '" data-job="' + job.id + '" data-field="jobTitle" ' + dis + ' /></td>' +
+      '<td><textarea rows="1" placeholder="What needs to be done" data-job="' + job.id + '" data-field="description" ' + dis + '>' + esc(job.description) + '</textarea></td>' +
+      '<td><input type="date" value="' + esc(job.deadline) + '" data-job="' + job.id + '" data-field="deadline" ' + dis + ' /></td>' +
+      '<td><input type="text" value="' + esc(job.requestedBy) + '" placeholder="' + (unlocked ? "Name" : "") + '" data-job="' + job.id + '" data-field="requestedBy" ' + dis + ' /></td>' +
+      '<td><select class="status" style="' + selectBg + 'background-color:' + meta.bg + ';color:' + meta.fg + ';" data-job="' + job.id + '" data-field="status" ' + dis + '>' +
+        STATUS.map(s => '<option value="' + s.value + '"' + (s.value === job.status ? " selected" : "") + '>' + s.label + '</option>').join("") +
+      '</select></td>' +
+      '<td><textarea rows="1" placeholder="Add a note" data-job="' + job.id + '" data-field="notes" ' + dis + '>' + esc(job.notes) + '</textarea></td>' +
+      '<td><div class="photos">' + photosHtml + '</div></td>' +
+      '<td style="text-align:right;">' + (unlocked ? '<button class="del-btn" data-job="' + job.id + '" data-act="delete" title="Delete job">' + icon.trash + '</button>' : '') + '</td>' +
+    '</tr>';
+  }
+
+  function autosize(ta){
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+  }
+
+  function findJob(id){
+    return jobsByPage[currentPage].find(j => j.id === id);
+  }
+
+  function wireTableEvents(){
+    const body = document.getElementById("jobsBody");
+    if (!body) return;
+
+    body.querySelectorAll("textarea").forEach(autosize);
+
+    body.querySelectorAll("input[data-field], textarea[data-field]").forEach(input => {
+      input.addEventListener("input", () => {
+        const job = findJob(input.getAttribute("data-job"));
+        if (!job) return;
+        job[input.getAttribute("data-field")] = input.value;
+        if (input.tagName === "TEXTAREA") autosize(input);
+        scheduleSave(currentPage);
+      });
+    });
+
+    body.querySelectorAll("select[data-field='status']").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const job = findJob(sel.getAttribute("data-job"));
+        if (!job) return;
+        job.status = sel.value;
+        const meta = statusMeta(sel.value);
+        sel.style.backgroundColor = meta.bg;
+        sel.style.color = meta.fg;
+        const arrow = "data:image/svg+xml;utf8," + encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="' + meta.fg + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        );
+        sel.style.backgroundImage = "url('" + arrow + "')";
+        scheduleSave(currentPage);
+        renderChips();
+      });
+    });
+
+    body.querySelectorAll("[data-act='delete']").forEach(btn => {
+      btn.addEventListener("click", () => {
+        confirmDeleteJobId = btn.getAttribute("data-job");
+        renderDeleteModal();
+      });
+    });
+
+    body.querySelectorAll("[data-act='rmphoto']").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const job = findJob(btn.getAttribute("data-job"));
+        if (!job) return;
+        job.photos.splice(parseInt(btn.getAttribute("data-idx"), 10), 1);
+        scheduleSave(currentPage);
+        renderTable();
+      });
+    });
+
+    body.querySelectorAll("[data-act='upload']").forEach(input => {
+      input.addEventListener("change", async (e) => {
+        const job = findJob(input.getAttribute("data-job"));
+        if (!job) return;
+        const files = Array.from(e.target.files || []);
+        for (const f of files) {
+          if (f.size > 4 * 1024 * 1024) continue;
+          const dataUrl = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result);
+            r.onerror = reject;
+            r.readAsDataURL(f);
+          });
+          job.photos.push(dataUrl);
+        }
+        scheduleSave(currentPage);
+        renderTable();
+      });
+    });
+  }
+
+  // ---------- Delete confirmation modal (passcode required) ----------
+  function renderDeleteModal(){
+    const root = document.getElementById("modalRoot");
+    if (!confirmDeleteJobId) { root.innerHTML = ""; return; }
+    const label = pageDef(currentPage).label;
+    root.innerHTML =
+      '<div class="modal-bg" id="modalBg">' +
+        '<div class="modal">' +
+          '<p class="title">Delete this job?</p>' +
+          '<p class="desc">Enter the ' + esc(label) + ' passcode to confirm. This can\'t be undone.</p>' +
+          '<input type="password" id="delPassInput" placeholder="Passcode" maxlength="8" />' +
+          '<p class="err" id="delErr" style="display:none;"></p>' +
+          '<div class="modal-actions">' +
+            '<button class="btn btn-outline" id="delCancel">Cancel</button>' +
+            '<button class="btn btn-red" id="delConfirm">Delete job</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    const input = document.getElementById("delPassInput");
+    const err = document.getElementById("delErr");
+    input.focus();
+    document.getElementById("delCancel").onclick = () => { confirmDeleteJobId = null; renderDeleteModal(); };
+    const submit = () => {
+      if (input.value.trim() !== pageDef(currentPage).code) {
+        err.textContent = "That passcode isn't right.";
+        err.style.display = "block";
+        return;
+      }
+      jobsByPage[currentPage] = jobsByPage[currentPage].filter(j => j.id !== confirmDeleteJobId);
+      confirmDeleteJobId = null;
+      renderDeleteModal();
+      saveNow(currentPage);
+      renderAll();
+    };
+    document.getElementById("delConfirm").onclick = submit;
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+  }
+
+  // ---------- Init ----------
+  document.getElementById("unlockPanel").dataset.open = "0";
+  ensurePageLoaded(currentPage);
+  renderAll();
+})();
+</script>
+</body>
+</html>
