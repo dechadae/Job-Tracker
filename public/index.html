@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --border: #E5E5E5;
+    --border-light: #F0F0F0;
+    --text: #1A1A1A;
+    --text-mid: #6B6B6B;
+    --text-dim: #9A9A9A;
+    --bg-soft: #FAFAFA;
+    --pending-c: #B58A00;   --pending-bg: #FFF8E6;
+    --progress-c: #1D5FC7;  --progress-bg: #EDF3FF;
+    --done-c: #1E8E5A;      --done-bg: #EAF7EF;
+    --cancel-c: #B23B3B;    --cancel-bg: #FCEEEE;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 40px 32px; }
+  .header-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  .subtitle { margin-top: 4px; font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 6px; }
+  .btn { border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; border-radius: 999px; padding: 9px 16px; display: inline-flex; align-items: center; gap: 6px; transition: background .15s, border-color .15s; }
+  .btn-primary { background: #171717; color: #fff; }
+  .btn-primary:hover { background: #404040; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-mid); }
+  .btn-outline:hover { border-color: #c9c9c9; }
+  .btn-danger { background: #E24C4C; color: #fff; }
+  .btn-danger:hover { background: #cc3f3f; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  .panel { border: 1px solid var(--border); background: var(--bg-soft); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .panel p.title { font-size: 13px; font-weight: 500; margin: 0 0 6px; color: #262626; }
+  .panel p.help { font-size: 12px; color: var(--text-mid); margin: 0 0 12px; line-height: 1.5; }
+  .panel-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  input[type="password"], input.pass {
+    width: 180px; border: 1px solid #cfcfcf; border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit; outline: none;
+  }
+  input[type="password"]:focus, input.pass:focus { border-color: #8a8a8a; }
+  .error-text { color: #d14343; font-size: 12px; margin: 8px 0 0; }
+  .readonly-banner { background: var(--bg-soft); border-radius: 8px; padding: 9px 14px; font-size: 12px; color: var(--text-mid); margin-bottom: 20px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .chip { border-radius: 999px; border: 1px solid var(--border); padding: 5px 12px; font-size: 12px; font-weight: 500; cursor: pointer; color: #8a8a8a; background: #fff; }
+  .chip.active-all { background: #171717; border-color: #171717; color: #fff; }
+
+  .table-wrap { border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; min-width: 1180px; border-collapse: collapse; text-align: left; }
+  thead tr { border-bottom: 1px solid var(--border); background: rgba(250,250,250,0.7); }
+  th { padding: 10px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: #b0b0b0; }
+  tbody tr { border-bottom: 1px solid var(--border-light); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(250,250,250,0.6); }
+  td { padding: 10px 12px; vertical-align: top; }
+  td input[type="text"], td input[type="date"], td textarea {
+    width: 100%; border: none; background: transparent; font-family: inherit; font-size: 13px; color: #262626; outline: none; resize: none; line-height: 1.4;
+  }
+  td input::placeholder, td textarea::placeholder { color: #b8b8b8; }
+  td input:disabled, td textarea:disabled { color: #8a8a8a; cursor: default; }
+  .job-title-input { font-weight: 500; color: #171717; }
+
+  select.status-select {
+    appearance: none; border: none; border-radius: 999px; padding: 5px 22px 5px 11px; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none;
+    background-repeat: no-repeat; background-position: right 8px center; background-size: 9px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5L6 8L9.5 4.5' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+  select.status-select:disabled { cursor: default; opacity: .85; appearance: none; background-image: none; }
+  .status-pending { background: var(--pending-bg); color: var(--pending-c); }
+  .status-in_progress { background: var(--progress-bg); color: var(--progress-c); }
+  .status-completed { background: var(--done-bg); color: var(--done-c); }
+  .status-canceled { background: var(--cancel-bg); color: var(--cancel-c); }
+
+  .photos-cell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .photo-thumb { position: relative; width: 36px; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); flex-shrink: 0; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-remove { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.45); border: none; cursor: pointer; color: #fff; }
+  .photo-thumb:hover .photo-remove { display: flex; }
+  .photo-add { width: 36px; height: 36px; border-radius: 6px; border: 1px dashed #c7c7c7; background: none; color: #b0b0b0; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .photo-add:hover { border-color: #9a9a9a; color: #737373; }
+  .empty-dash { color: #cfcfcf; font-size: 12px; }
+
+  .del-btn { background: none; border: none; cursor: pointer; color: #d4d4d4; padding: 2px; }
+  .del-btn:hover { color: #e24c4c; }
+
+  .footer-row { display: flex; justify-content: space-between; margin-top: 16px; font-size: 12px; color: #b0b0b0; flex-wrap: wrap; gap: 6px; }
+  .footer-row .save-err { color: #e08b8b; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+  .modal-box { width: 100%; max-width: 360px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+  .modal-box .m-title { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+  .modal-box .m-help { font-size: 12px; color: var(--text-mid); margin: 0 0 14px; }
+  .modal-box input { width: 100%; margin-bottom: 8px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+
+  .loading-wrap { display: flex; align-items: center; justify-content: center; padding: 90px 0; color: #bdbdbd; }
+  .spin { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header-row">
+    <div>
+      <h1>Job Tracker</h1>
+      <p class="subtitle"><span id="jobCount">Shared team board</span></p>
+    </div>
+    <div class="header-actions" id="headerActions"></div>
+  </div>
+
+  <div id="unlockPanel"></div>
+  <div id="readonlyBanner"></div>
+  <div class="chips" id="chips"></div>
+
+  <div id="loading" class="loading-wrap">
+    <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ccc" stroke-width="3" stroke-dasharray="50 100"/></svg>
+  </div>
+
+  <div class="table-wrap hidden" id="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:128px">Date requested</th>
+          <th style="width:160px">Job title</th>
+          <th style="width:220px">Description</th>
+          <th style="width:128px">Deadline</th>
+          <th style="width:130px">Requested by</th>
+          <th style="width:140px">Status</th>
+          <th style="width:200px">Notes</th>
+          <th style="width:150px">Photos</th>
+          <th style="width:36px"></th>
+        </tr>
+      </thead>
+      <tbody id="jobsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-row">
+    <span>Visible to everyone with this link · changes save automatically for everyone.</span>
+    <span class="save-err hidden" id="saveErr">Couldn't save last change — check your connection.</span>
+  </div>
+</div>
+
+<div id="deleteModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <p class="m-title">Delete this job?</p>
+    <p class="m-help">Enter the edit passcode to confirm. This can't be undone.</p>
+    <input type="password" id="deletePassInput" class="pass" placeholder="Passcode" style="width:100%" autocomplete="off" />
+    <p class="error-text hidden" id="deleteError"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="cancelDeleteBtn">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "in_progress", label: "On Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "canceled", label: "Canceled" },
+];
+
+const state = {
+  jobs: [],
+  jobsLoaded: false,
+  passHash: undefined, // undefined = loading, null = not set
+  isEditor: false,
+  filter: "all",
+  confirmDeleteId: null,
+  saveErr: false,
+};
+
+let saveTimer = null;
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function hashPass(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function emptyJob() {
+  return {
+    id: uid(),
+    dateRequested: new Date().toISOString().slice(0, 10),
+    jobTitle: "",
+    description: "",
+    deadline: "",
+    requestedBy: "",
+    status: "pending",
+    notes: "",
+    photos: [],
+  };
+}
+
+function escapeHtml(str) {
+  return (str || "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+// ---------- API ----------
+async function apiGetJobs() {
+  const res = await fetch("/api/jobs");
+  if (!res.ok) throw new Error("failed");
+  return res.json();
+}
+async function apiSaveJobs(jobs) {
+  const res = await fetch("/api/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(jobs),
+  });
+  return res.ok;
+}
+async function apiGetPasscode() {
+  const res = await fetch("/api/passcode");
+  if (!res.ok) throw new Error("failed");
+  const data = await res.json();
+  return data.hash;
+}
+async function apiSetPasscode(hash, previousHash) {
+  const res = await fetch("/api/passcode", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ hash, previousHash: previousHash || null }),
+  });
+  return res.ok;
+}
+
+// ---------- persistence of edit-unlock (local device only) ----------
+function getLocalUnlocked() {
+  return localStorage.getItem("jobTrackerEditorUnlocked") === "true";
+}
+function setLocalUnlocked(val) {
+  localStorage.setItem("jobTrackerEditorUnlocked", val ? "true" : "false");
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const ok = await apiSaveJobs(state.jobs);
+    state.saveErr = !ok;
+    renderFooter();
+  }, 500);
+}
+
+// ---------- mutations ----------
+function updateJob(id, patch) {
+  if (!state.isEditor) return;
+  const j = state.jobs.find((x) => x.id === id);
+  if (j) Object.assign(j, patch);
+  scheduleSave();
+}
+function addJob() {
+  if (!state.isEditor) return;
+  state.jobs.unshift(emptyJob());
+  scheduleSave();
+  render();
+}
+function removeJobImmediate(id) {
+  state.jobs = state.jobs.filter((j) => j.id !== id);
+  scheduleSave();
+  render();
+}
+function addPhoto(id, dataUrl) {
+  if (!state.isEditor) return;
+  const j = state.jobs.find((x) => x.id === id);
+  if (j) j.photos.push(dataUrl);
+  scheduleSave();
+  render();
+}
+function removePhoto(id, idx) {
+  if (!state.isEditor) return;
+  const j = state.jobs.find((x) => x.id === id);
+  if (j) j.photos.splice(idx, 1);
+  scheduleSave();
+  render();
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- render ----------
+function statusClass(v) { return "status-" + v; }
+function statusLabel(v) {
+  const s = STATUS_OPTIONS.find((o) => o.value === v);
+  return s ? s.label : v;
+}
+
+function sortedVisibleJobs() {
+  const sorted = [...state.jobs].sort((a, b) => {
+    if (!a.dateRequested && !b.dateRequested) return 0;
+    if (!a.dateRequested) return 1;
+    if (!b.dateRequested) return -1;
+    return b.dateRequested.localeCompare(a.dateRequested);
+  });
+  return state.filter === "all" ? sorted : sorted.filter((j) => j.status === state.filter);
+}
+
+function renderHeaderActions() {
+  const el = document.getElementById("headerActions");
+  if (!state.jobsLoaded || state.passHash === undefined) { el.innerHTML = ""; return; }
+  if (state.isEditor) {
+    el.innerHTML = `
+      <button class="btn btn-primary" id="addJobBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+        New job
+      </button>
+      <button class="btn btn-outline" id="lockBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        Lock editing
+      </button>`;
+    document.getElementById("addJobBtn").onclick = addJob;
+    document.getElementById("lockBtn").onclick = lockEditing;
+  } else {
+    el.innerHTML = `
+      <button class="btn btn-outline" id="unlockToggleBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 017.6-1.8"/></svg>
+        ${state.passHash ? "Unlock editing" : "Become editor"}
+      </button>`;
+    document.getElementById("unlockToggleBtn").onclick = () => {
+      state._showUnlock = !state._showUnlock;
+      renderUnlockPanel();
+    };
+  }
+}
+
+function renderUnlockPanel() {
+  const el = document.getElementById("unlockPanel");
+  if (!state._showUnlock || state.isEditor) { el.innerHTML = ""; return; }
+
+  if (state.passHash === null) {
+    el.innerHTML = `
+      <div class="panel">
+        <p class="title">Set a passcode to become this board's editor</p>
+        <p class="help">Anyone with this link can view the board. Only people who know this passcode can edit it — keep it to yourself and anyone you want to give edit access.</p>
+        <div class="panel-row">
+          <input type="password" id="setupPass1" class="pass" placeholder="Choose a passcode" />
+          <input type="password" id="setupPass2" class="pass" placeholder="Confirm passcode" />
+          <button class="btn btn-primary" id="setupPassBtn">Set passcode & start editing</button>
+        </div>
+        <p class="error-text hidden" id="setupError"></p>
+      </div>`;
+    document.getElementById("setupPassBtn").onclick = handleSetupPasscode;
+  } else {
+    el.innerHTML = `
+      <div class="panel">
+        <p class="title">Enter the edit passcode</p>
+        <div class="panel-row">
+          <input type="password" id="unlockPassInput" class="pass" placeholder="Passcode" />
+          <button class="btn btn-primary" id="unlockBtn">Unlock</button>
+        </div>
+        <p class="error-text hidden" id="unlockError"></p>
+      </div>`;
+    document.getElementById("unlockBtn").onclick = handleUnlock;
+    document.getElementById("unlockPassInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleUnlock();
+    });
+  }
+}
+
+async function handleSetupPasscode() {
+  const p1 = document.getElementById("setupPass1").value;
+  const p2 = document.getElementById("setupPass2").value;
+  const errEl = document.getElementById("setupError");
+  if (p1.trim().length < 4) { errEl.textContent = "Use at least 4 characters."; errEl.classList.remove("hidden"); return; }
+  if (p1 !== p2) { errEl.textContent = "Passcodes don't match."; errEl.classList.remove("hidden"); return; }
+  const h = hashPass(p1.trim());
+  const ok = await apiSetPasscode(h, null);
+  if (!ok) { errEl.textContent = "Couldn't save passcode. Try again."; errEl.classList.remove("hidden"); return; }
+  state.passHash = h;
+  state.isEditor = true;
+  setLocalUnlocked(true);
+  state._showUnlock = false;
+  renderAll();
+}
+
+async function handleUnlock() {
+  const p = document.getElementById("unlockPassInput").value;
+  const errEl = document.getElementById("unlockError");
+  if (hashPass(p.trim()) === state.passHash) {
+    state.isEditor = true;
+    setLocalUnlocked(true);
+    state._showUnlock = false;
+    renderAll();
+  } else {
+    errEl.textContent = "That passcode isn't right.";
+    errEl.classList.remove("hidden");
+  }
+}
+
+function lockEditing() {
+  state.isEditor = false;
+  setLocalUnlocked(false);
+  renderAll();
+}
+
+function renderReadonlyBanner() {
+  const el = document.getElementById("readonlyBanner");
+  if (state.jobsLoaded && state.passHash !== undefined && !state.isEditor && !state._showUnlock) {
+    el.innerHTML = `<div class="readonly-banner">You're viewing in read-only mode. Only the editor can add or change jobs.</div>`;
+  } else {
+    el.innerHTML = "";
+  }
+}
+
+function renderChips() {
+  const el = document.getElementById("chips");
+  if (!state.jobsLoaded) { el.innerHTML = ""; return; }
+  const counts = {};
+  STATUS_OPTIONS.forEach((s) => counts[s.value] = state.jobs.filter((j) => j.status === s.value).length);
+  let html = `<button class="chip ${state.filter === "all" ? "active-all" : ""}" data-filter="all">All (${state.jobs.length})</button>`;
+  STATUS_OPTIONS.forEach((s) => {
+    const active = state.filter === s.value;
+    const bg = active ? `var(--${s.value === "in_progress" ? "progress" : s.value}-bg)` : "#fff";
+    html += `<button class="chip" data-filter="${s.value}" style="${active ? `background:var(--${s.value === "in_progress" ? "progress" : s.value}-bg);border-color:var(--${s.value === "in_progress" ? "progress" : s.value}-bg);color:var(--${s.value === "in_progress" ? "progress" : s.value}-c)` : ""}">${s.label} (${counts[s.value] || 0})</button>`;
+  });
+  el.innerHTML = html;
+  el.querySelectorAll("[data-filter]").forEach((btn) => {
+    btn.onclick = () => { state.filter = btn.getAttribute("data-filter"); renderChips(); renderTable(); };
+  });
+}
+
+function photoCellHtml(job) {
+  let html = `<div class="photos-cell" data-job="${job.id}">`;
+  job.photos.forEach((p, i) => {
+    html += `<div class="photo-thumb"><img src="${p}" alt="attachment"/>${state.isEditor ? `<button class="photo-remove" data-remove-photo="${i}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg></button>` : ""}</div>`;
+  });
+  if (state.isEditor) {
+    html += `<button class="photo-add" data-upload-trigger><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></button>
+      <input type="file" accept="image/*" multiple class="hidden" data-upload-input />`;
+  } else if (job.photos.length === 0) {
+    html += `<span class="empty-dash">—</span>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderTable() {
+  const body = document.getElementById("jobsBody");
+  const visible = sortedVisibleJobs();
+  document.getElementById("jobCount").textContent =
+    `Shared team board · ${state.jobs.length} ${state.jobs.length === 1 ? "job" : "jobs"} · sorted by most recent request`;
+
+  if (visible.length === 0) {
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#b0b0b0;font-size:13px;padding:40px 12px;">${state.isEditor ? "No jobs here yet. Add one to get started." : "No jobs to show yet."}</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = visible.map((job) => `
+    <tr data-row="${job.id}">
+      <td><input type="date" value="${job.dateRequested || ""}" data-field="dateRequested" ${state.isEditor ? "" : "disabled"} /></td>
+      <td><input type="text" class="job-title-input" value="${escapeHtml(job.jobTitle)}" placeholder="${state.isEditor ? "Untitled job" : ""}" data-field="jobTitle" ${state.isEditor ? "" : "disabled"} /></td>
+      <td><textarea rows="1" placeholder="What needs to be done" data-field="description" ${state.isEditor ? "" : "disabled"}>${escapeHtml(job.description)}</textarea></td>
+      <td><input type="date" value="${job.deadline || ""}" data-field="deadline" ${state.isEditor ? "" : "disabled"} /></td>
+      <td><input type="text" value="${escapeHtml(job.requestedBy)}" placeholder="${state.isEditor ? "Name" : ""}" data-field="requestedBy" ${state.isEditor ? "" : "disabled"} /></td>
+      <td>
+        <select class="status-select ${statusClass(job.status)}" data-field="status" ${state.isEditor ? "" : "disabled"}>
+          ${STATUS_OPTIONS.map((s) => `<option value="${s.value}" ${s.value === job.status ? "selected" : ""}>${s.label}</option>`).join("")}
+        </select>
+      </td>
+      <td><textarea rows="1" placeholder="Add a note" data-field="notes" ${state.isEditor ? "" : "disabled"}>${escapeHtml(job.notes)}</textarea></td>
+      <td>${photoCellHtml(job)}</td>
+      <td style="text-align:right">
+        ${state.isEditor ? `<button class="del-btn" data-delete="${job.id}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>` : ""}
+      </td>
+    </tr>
+  `).join("");
+
+  // autosize textareas
+  body.querySelectorAll("textarea").forEach((ta) => {
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+    ta.addEventListener("input", () => {
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    });
+  });
+
+  // field change handlers
+  body.querySelectorAll("[data-field]").forEach((elm) => {
+    const row = elm.closest("[data-row]");
+    const id = row.getAttribute("data-row");
+    const field = elm.getAttribute("data-field");
+    const evtName = elm.tagName === "SELECT" ? "change" : "input";
+    elm.addEventListener(evtName, () => {
+      updateJob(id, { [field]: elm.value });
+      if (field === "status") {
+        elm.className = "status-select " + statusClass(elm.value);
+      }
+      if (field === "dateRequested") {
+        // re-sort happens on next full render (blur) to avoid jumping rows while typing
+      }
+    });
+    if (field === "dateRequested" || field === "status") {
+      elm.addEventListener("change", () => renderTable());
+    }
+  });
+
+  // delete buttons
+  body.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.addEventListener("click", () => openDeleteModal(btn.getAttribute("data-delete")));
+  });
+
+  // photo upload triggers
+  body.querySelectorAll("[data-upload-trigger]").forEach((btn) => {
+    const cell = btn.closest("[data-job]");
+    const input = cell.querySelector("[data-upload-input]");
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
+      const jobId = cell.getAttribute("data-job");
+      for (const f of files) {
+        if (f.size > 4 * 1024 * 1024) continue;
+        const dataUrl = await fileToDataUrl(f);
+        addPhoto(jobId, dataUrl);
+      }
+      input.value = "";
+    });
+  });
+
+  // photo remove
+  body.querySelectorAll("[data-remove-photo]").forEach((btn) => {
+    const cell = btn.closest("[data-job]");
+    const jobId = cell.getAttribute("data-job");
+    btn.addEventListener("click", () => removePhoto(jobId, parseInt(btn.getAttribute("data-remove-photo"), 10)));
+  });
+}
+
+function renderFooter() {
+  const el = document.getElementById("saveErr");
+  el.classList.toggle("hidden", !state.saveErr);
+}
+
+// ---------- delete modal ----------
+function openDeleteModal(id) {
+  state.confirmDeleteId = id;
+  document.getElementById("deletePassInput").value = "";
+  document.getElementById("deleteError").classList.add("hidden");
+  document.getElementById("deleteModal").classList.remove("hidden");
+  document.getElementById("deletePassInput").focus();
+}
+function closeDeleteModal() {
+  state.confirmDeleteId = null;
+  document.getElementById("deleteModal").classList.add("hidden");
+}
+function confirmDelete() {
+  const val = document.getElementById("deletePassInput").value;
+  const errEl = document.getElementById("deleteError");
+  if (hashPass(val.trim()) !== state.passHash) {
+    errEl.textContent = "That passcode isn't right.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+  removeJobImmediate(state.confirmDeleteId);
+  closeDeleteModal();
+}
+document.getElementById("cancelDeleteBtn").onclick = closeDeleteModal;
+document.getElementById("confirmDeleteBtn").onclick = confirmDelete;
+document.getElementById("deletePassInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") confirmDelete();
+});
+
+// ---------- full render orchestration ----------
+function renderAll() {
+  renderHeaderActions();
+  renderUnlockPanel();
+  renderReadonlyBanner();
+  renderChips();
+  renderTable();
+  renderFooter();
+}
+function render() { renderAll(); }
+
+// ---------- boot ----------
+async function boot() {
+  try {
+    const [jobs, hash] = await Promise.all([apiGetJobs(), apiGetPasscode()]);
+    state.jobs = jobs || [];
+    state.passHash = hash;
+    state.isEditor = hash ? getLocalUnlocked() : false;
+  } catch (e) {
+    state.jobs = [];
+    state.passHash = null;
+  }
+  state.jobsLoaded = true;
+  document.getElementById("loading").classList.add("hidden");
+  document.getElementById("tableWrap").classList.remove("hidden");
+  renderAll();
+}
+
+boot();
+</script>
+</body>
+</html>
